@@ -1,0 +1,39 @@
+---
+# https://www.colinodell.com/blog/2016-12/installing-php-7-1
+- name: Install preparation packages for adding php7.1 repository
+  sudo: yes
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - apt-transport-https
+    - lsb-release
+    - ca-certificates
+
+# http://www.mikeball.info/blog/ansible-wget/
+- name: Download apt.gpg
+  get_url:
+    url:  https://packages.sury.org/php/apt.gpg
+    dest: /etc/apt/trusted.gpg.d/php.gpg
+
+- name: Add packages.sury.org to source.list
+  shell: echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
+
+- name: Update apt
+  sudo: yes
+  apt: update_cache=yes
+
+- name: Install php7.1
+  sudo: yes
+  apt: pkg=php7.1 state=latest
+
+- name: Install php7.1-fpm
+  sudo: yes
+  apt: pkg=php7.1-fpm state=latest
+
+- name: Install PHP Packages
+  sudo: yes
+  apt: pkg={{ item }} state=latest
+  with_items: php.packages
+  when: php.packages is defined
+
+- include: configure.yml
+- include: pecl.yml

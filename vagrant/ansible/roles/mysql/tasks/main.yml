@@ -1,0 +1,56 @@
+---
+# using apt-key . https://dev.mysql.com/doc/refman/5.7/en/checking-gpg-signature.html
+- name: copy mysql signagture
+  sudo: yes
+  template: src=signature.tpl dest=/tmp/mysql-5.7-signature-file
+
+- name: Change default nginx site
+  apt_key:
+    id: 5072E1F5
+    keyserver: pgp.mit.edu
+    file: /tmp/mysql-5.7-signature-file
+    state: present
+
+- name: Add repo.mysql.com to source.list
+  shell: echo "deb http://repo.mysql.com/apt/debian/ jessie mysql-5.7" > /etc/apt/sources.list.d/mysql-57.list
+
+- name: Update apt
+  sudo: yes
+  apt: update_cache=yes
+
+# Retrieve the current hostname, because {{ ansible_hostname }} still contains the old name
+- shell: hostname
+  register: current_hostname
+
+- name: mysql | Install MySQL Packages
+  sudo: yes
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - mysql-server
+    - mysql-client
+    - python-mysqldb
+
+- name: mysql | Update root password for all root accounts
+  mysql_user: name=root host={{ item }} check_implicit_admin=yes password={{ mysql.root_password }} login_user=root login_password={{ mysql.root_password }}
+  with_items:
+    - "{{ current_hostname.stdout | lower }}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+
+- name: mysql | Create databases
+  mysql_db: name={{ mysql.database }} state=present login_user=root login_password={{ mysql.root_password }}
+
+- name: mysql | Import dump
+  mysql_db: name={{ mysql.database }} state=import login_user=root login_password={{ mysql.root_password }} target=/vagrant/{{ mysql.dump }}
+  when: mysql.dump
+
+- name: mysql | Ensure anonymous users are not in the database
+  mysql_user: name='' host={{ item }} state=absent login_user=root login_password={{ mysql.root_password }}
+  with_items:
+    - localhost
+    - "{{ current_hostname.stdout | lower }}"
+
+- name: mysql | Create users
+  mysql_user: name={{ mysql.user }} password={{ mysql.password }} priv={{ mysql.database }}.*:ALL state=present login_user=root login_password={{ mysql.root_password }}
+#  mysql_user: name=root password={{ mysql.root_password }} priv={{ mysql.database }}.*:ALL state=present login_user=root login_password={{ mysql.root_password }}
