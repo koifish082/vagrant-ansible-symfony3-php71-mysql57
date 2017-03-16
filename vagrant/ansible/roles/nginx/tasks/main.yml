@@ -1,9 +1,9 @@
 ---
 - name: Install Nginx
-  sudo: yes
+  become: true
   apt: pkg=nginx state=latest
 
 - name: Change default nginx site
-  sudo: yes
+  become: true
   template: src=default.tpl dest=/etc/nginx/sites-available/default
   notify: restart nginx

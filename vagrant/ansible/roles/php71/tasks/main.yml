@@ -1,7 +1,7 @@
 ---
 # https://www.colinodell.com/blog/2016-12/installing-php-7-1
 - name: Install preparation packages for adding php7.1 repository
-  sudo: yes
+  become: true
   apt: pkg={{ item }} state=latest
   with_items:
     - apt-transport-https
@@ -18,21 +18,21 @@
   shell: echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
 
 - name: Update apt
-  sudo: yes
+  become: true
   apt: update_cache=yes
 
 - name: Install php7.1
-  sudo: yes
+  become: true
   apt: pkg=php7.1 state=latest
 
 - name: Install php7.1-fpm
-  sudo: yes
+  become: true
   apt: pkg=php7.1-fpm state=latest
 
 - name: Install PHP Packages
-  sudo: yes
+  become: true
   apt: pkg={{ item }} state=latest
-  with_items: php.packages
+  with_items: "{{ php.packages }}"
   when: php.packages is defined
 
 - include: configure.yml
