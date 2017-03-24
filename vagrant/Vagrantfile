@@ -22,6 +22,10 @@ def which(cmd)
     return nil
 end
 
+def windows?
+    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
+end
+
 Vagrant.configure("2") do |config|
 
     config.vm.provider :virtualbox do |v|
@@ -52,5 +56,9 @@ Vagrant.configure("2") do |config|
         config.vm.provision :shell, path: "ansible/windows.sh", args: ["default"]
     end
 
-    config.vm.synced_folder "../myapp", "/var/www/myapp", type: "nfs"
+    if windows?
+        config.vm.synced_folder "../myapp", "/var/www/myapp", type: "smb", mount_options: ["mfsymlinks,dir_mode=0775,file_mode=0644"]
+    else
+        config.vm.synced_folder "../myapp", "/var/www/myapp", type: "nfs"
+    end
 end
